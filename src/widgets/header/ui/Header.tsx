@@ -9,7 +9,7 @@ import MobileMenu from "./MobileMenu";
 const Header = () => {
   // TODO: GSAP으로 좀더 이쁘게 해보자.
   return (
-    <header className="sticky top-0 mx-auto flex h-auto max-w-[1440px] items-center bg-(--background) lg:h-[100px]">
+    <header className="sticky top-0 z-50 flex h-auto items-center bg-(--background) lg:h-[100px]">
       <DesktopMenu />
       <MobileMenu />
     </header>
