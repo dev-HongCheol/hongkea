@@ -58,7 +58,7 @@ export const ROUTES = {
     },
     children: [
       {
-        label: "다이닝",
+        label: "Dining",
         url: "/products/dining",
         description: "식탁, 의자 등 다이닝 가구",
         meta: {
@@ -67,7 +67,7 @@ export const ROUTES = {
         },
       },
       {
-        label: "리빙",
+        label: "Living",
         url: "/products/living",
         description: "소파, 테이블 등 거실 가구",
         meta: {
@@ -76,7 +76,7 @@ export const ROUTES = {
         },
       },
       {
-        label: "침실",
+        label: "Bedroom",
         url: "/products/bedroom",
         description: "침대, 수납장 등 침실 가구",
         meta: {

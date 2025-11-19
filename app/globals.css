@@ -50,7 +50,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: #b88e2f;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -118,5 +118,11 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-poppins), Arial, Helvetica, sans-serif;
+  }
+}
+
+@layer utilities {
+  .main-container {
+    @apply mx-auto max-w-[1440px];
   }
 }

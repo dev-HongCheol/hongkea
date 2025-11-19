@@ -1,5 +1,7 @@
+import { MainPage } from "@/views/main";
+
 const page = () => {
-  return <div className="h-[1500px]">page</div>;
+  return <MainPage />;
 };
 
 export default page;
