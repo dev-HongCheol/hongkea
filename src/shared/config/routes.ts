@@ -106,6 +106,40 @@ export const ROUTES = {
       description: "애로사항을 문의하세요.",
     },
   },
+
+  HELP: {
+    label: "Help",
+    url: "#",
+    children: [
+      {
+        label: "Payment Options",
+        url: "/help/payment-options",
+        description: "결제방법 설정",
+        meta: {
+          title: "결제방법 선택 | 홍케아",
+          description: "다양한 결제 방법을 선택하세요.",
+        },
+      },
+      {
+        label: "Returns",
+        url: "/help/returns",
+        description: "반품",
+        meta: {
+          title: "반품 | 홍케아",
+          description: "반품을 도와드리겠습니다.",
+        },
+      },
+      {
+        label: "Privacy Policies",
+        url: "/help/privacy-policies",
+        description: "개인정보 처리방침",
+        meta: {
+          title: "개인정보 처리방침 | 홍케아",
+          description: "사용자 개인정보 수집·저장·사용·공유·보호 정책",
+        },
+      },
+    ],
+  },
 } as const;
 
 /**
@@ -143,6 +177,11 @@ export const getNavigationMenu = () => [
   ROUTES.ABOUT,
   ROUTES.CONTACT,
 ];
+
+export const getFooterMenu = () => ({
+  Link: [ROUTES.HOME, ROUTES.PRODUCTS, ROUTES.ABOUT, ROUTES.CONTACT],
+  Help: [...ROUTES.HELP.children],
+});
 
 /**
  * Helper function to get route meta information
