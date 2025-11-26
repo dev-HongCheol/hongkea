@@ -49,8 +49,7 @@ const CategoryTreeList = () => {
   }
 
   return (
-    <div className="x-5 max-h-dvh w-full max-w-[400px] overflow-auto border">
-      <DndProvider backend={MultiBackend} options={getBackendOptions()}>
+    <DndProvider backend={MultiBackend} options={getBackendOptions()}>
         <Tree
           tree={treeData}
           rootId={0}
@@ -68,8 +67,7 @@ const CategoryTreeList = () => {
             dropTarget: "bg-blue-50 border-l-2 border-blue-500",
           }}
         />
-      </DndProvider>
-    </div>
+    </DndProvider>
   );
 };
 

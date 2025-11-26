@@ -165,6 +165,24 @@ export const AUTH_ROUTES = {
 } as const;
 
 /**
+ * Admin routes configuration
+ */
+export const ADMIN_ROUTES = {
+  CATEGORY: {
+    label: "Category",
+    url: "/admin/category",
+    description: "카테고리 관리",
+   
+  },
+  BRAND: {
+    label: "Brand",
+    url: "/admin/brand",
+    description: "브랜드 관리",
+   
+  },
+} as const;
+
+/**
  * Navigation menu items for Header component
  * Transforms route configuration into navigation menu format
  */

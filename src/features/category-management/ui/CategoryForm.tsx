@@ -145,10 +145,7 @@ const CategoryForm = () => {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit, (error) => console.log(error))}
-      className="max-h-[calc(100dvh - 40px) w-full overflow-y-auto"
-    >
+    <form onSubmit={handleSubmit(onSubmit, (error) => console.log(error))}>
       <FieldGroup>
         <FieldSet>
           <div className="mb-4 flex items-center justify-between">

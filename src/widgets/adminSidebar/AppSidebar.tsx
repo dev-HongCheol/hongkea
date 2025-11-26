@@ -1,5 +1,6 @@
 "use client";
 
+import { ADMIN_ROUTES } from "@/shared/config/routes";
 import {
   Sidebar,
   SidebarContent,
@@ -11,30 +12,32 @@ import {
   SidebarMenuItem,
 } from "@/shared/ui/sidebar";
 import { Tag } from "lucide-react";
+import Link from "next/link";
 
-// Menu items.
-const items = [
-  {
-    title: "Category",
-    url: "/admin/category",
-    icon: Tag,
-  },
-];
+// Convert ADMIN_ROUTES object to array for mapping
+const items = Object.values(ADMIN_ROUTES).map(route => ({
+  title: route.label,
+  url: route.url,
+  icon: Tag,
+  description: route.description,
+}));
 const AppSidebar = () => {
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="border-b-1">Admin</SidebarGroupLabel>
+          <SidebarGroupLabel className="rounded-none border-b-1">
+            Admin
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
