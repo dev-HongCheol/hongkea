@@ -1,6 +1,5 @@
-import LoginForm from "@/widgets/emailLogin/ui/LoginForm";
-import React from "react";
 import loginLeft from "@/../public/login/login-right.png";
+import LoginForm from "@/widgets/emailLogin/ui/LoginForm";
 import Image from "next/image";
 
 const LoginPage = () => {
