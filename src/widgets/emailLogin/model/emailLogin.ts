@@ -3,9 +3,8 @@
  * FSD-compliant model layer with React Query integration
  */
 
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { loginWithEmailPassword, getCurrentUser, logout } from "../api/authApi";
-import { LoginFormData } from "./types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentUser, loginWithEmailPassword, logout } from "../api/authApi";
 
 // Query Keys
 export const AUTH_QUERY_KEYS = {
