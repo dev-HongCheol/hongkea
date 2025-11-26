@@ -16,7 +16,8 @@ import CategoryTreeNodeComponent from "./CategoryNode";
  */
 const CategoryTreeList = () => {
   const { data: categoryTree, isLoading, error } = useCategoryTreeQuery();
-  const { treeData, handleDrop, hasChildren } = useCategoryTreeDnd(categoryTree);
+  const { treeData, handleDrop, hasChildren } =
+    useCategoryTreeDnd(categoryTree);
 
   // Loading state
   if (isLoading) {
@@ -48,7 +49,7 @@ const CategoryTreeList = () => {
   }
 
   return (
-    <div className="x-5 w-full border">
+    <div className="x-5 max-h-dvh w-full max-w-[400px] overflow-auto border">
       <DndProvider backend={MultiBackend} options={getBackendOptions()}>
         <Tree
           tree={treeData}

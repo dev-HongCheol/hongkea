@@ -145,7 +145,10 @@ const CategoryForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, (error) => console.log(error))}>
+    <form
+      onSubmit={handleSubmit(onSubmit, (error) => console.log(error))}
+      className="max-h-[calc(100dvh - 40px) w-full overflow-y-auto"
+    >
       <FieldGroup>
         <FieldSet>
           <div className="mb-4 flex items-center justify-between">
@@ -174,10 +177,7 @@ const CategoryForm = () => {
           {selectedCategory && (
             <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3">
               <div className="text-sm font-medium text-blue-800">
-                선택된 카테고리: {selectedCategory.name}
-              </div>
-              <div className="text-xs text-blue-600">
-                ID: {selectedCategory.id} | Slug: {selectedCategory.slug}
+                ID: {selectedCategory.id}
               </div>
             </div>
           )}

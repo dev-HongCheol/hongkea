@@ -1,9 +1,7 @@
-import {
-  CategoryTreeNode as CategoryTreeNodeType,
-} from "@/entities/category";
+import { CategoryTreeNode as CategoryTreeNodeType } from "@/entities/category";
 import { NodeModel, useDragOver } from "@minoru/react-dnd-treeview";
 import { File, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { MouseEvent, useState } from "react";
 import { useCategoryStore } from "../lib/useCategoryStore";
 
 /**
@@ -30,7 +28,7 @@ const CategoryTreeNode = ({
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const { id, text } = node;
   const indent = depth * 24;
-  
+
   // Zustand store에서 선택된 카테고리 상태 가져오기
   const { selectedCategoryId, setSelectedCategoryId } = useCategoryStore();
 
@@ -45,7 +43,8 @@ const CategoryTreeNode = ({
    * Handle category selection using Zustand store
    * @param categoryId - Category ID to select
    */
-  const handleClickNode = (categoryId: string) => {
+  const handleClickNode = (event: MouseEvent, categoryId: string) => {
+    event.stopPropagation();
     setSelectedCategoryId(categoryId);
   };
 
@@ -55,12 +54,13 @@ const CategoryTreeNode = ({
   return (
     <div
       className={`flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-gray-50 ${
-        isSelected ? "bg-blue-100 border border-blue-300" : ""
+        isSelected ? "border border-blue-300 bg-blue-100" : ""
       }`}
       style={{ paddingInlineStart: indent }}
       {...dragOverProps}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={(event) => handleClickNode(event, id as string)}
     >
       {/* Toggle icon for expandable nodes */}
       {hasChildren ? (
@@ -70,9 +70,8 @@ const CategoryTreeNode = ({
       ) : (
         <File size={16} className="text-gray-500" />
       )}
-      <div 
+      <div
         className={`text-sm ${isSelected ? "font-semibold text-blue-700" : ""}`}
-        onClick={() => handleClickNode(id as string)}
       >
         {text}
       </div>
