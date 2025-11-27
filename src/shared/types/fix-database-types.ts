@@ -3,9 +3,16 @@
  *
  * 목적:
  *   - 생성된 database.types.ts 파일의 JSONB 타입을 구체적 타입으로 변경
+ *   - Nullable 필드를 Non-nullable로 변경 (뷰 테이블의 필수 필드)
+ *   - 필요한 타입 import 구문 자동 추가
+ *
+ * 기능:
+ *   1. JSONB 타입 치환: Json → 구체적인 타입명 (AdminPermissions, ProductDimensions 등)
+ *   2. 뷰 테이블 필수 필드: nullable → non-nullable 변경
+ *   3. Import 구문 관리: database-json.types에서 필요한 타입들 자동 import
  *
  * 사용법:
- *   tsx scripts/fix-database-types.ts
+ *   tsx src/shared/types/fix-database-types.ts
  *
  * 설정은 아래 CONFIG 객체에서 수정
  */
@@ -21,8 +28,33 @@ const TYPES_FILE_PATH = path.join(
   "database.types.ts",
 );
 
-// 수정 설정
-const CONFIG = [
+/**
+ * 테이블별 타입 수정 설정 인터페이스
+ */
+interface TableConfig {
+  /** 대상 테이블명 */
+  tableName: string;
+  /** JSONB 타입을 치환할 컬럼들 */
+  columns: {
+    /** 컬럼명 */
+    name: string;
+    /** 치환할 타입명 */
+    type: string;
+    /** 타입을 import할 모듈 경로 */
+    importFrom: string;
+  }[];
+  /** nullable을 non-nullable로 변경할 필드들 (주로 뷰 테이블용) */
+  nullableToNonNullable?: string[];
+  /** 적용할 operation 타입 (Row, Insert, Update) */
+  operations: string[];
+}
+
+/**
+ * 타입 수정 설정
+ * 
+ * 새로운 JSONB 타입이나 뷰 테이블이 추가되면 여기에 설정을 추가
+ */
+const CONFIG: TableConfig[] = [
   {
     tableName: "hk_admin_activity_logs",
     columns: [
@@ -113,6 +145,18 @@ const CONFIG = [
         type: "ProductDimensions",
         importFrom: "./database-json.types",
       },
+    ],
+    nullableToNonNullable: [
+      "id",
+      "name",
+      "slug",
+      "sku",
+      "base_price",
+      "category_id",
+      "is_featured",
+      "is_new",
+      "is_bestseller",
+      "is_active",
     ],
     operations: ["Row"],
   },
@@ -217,12 +261,37 @@ function updateImports(
 }
 
 /**
+ * Nullable을 Non-nullable로 변경
+ */
+function fixNullableToNonNullable(
+  content: string,
+  tableName: string,
+  fieldNames: string[],
+  operations: string[],
+): string {
+  let modifiedContent = content;
+
+  for (const operation of operations) {
+    for (const fieldName of fieldNames) {
+      // fieldName: Type | null → fieldName: Type 형태로 변경
+      const nullablePattern = new RegExp(
+        `(\\s+${fieldName}\\s*:\\s*)([^\\s|]+)(\\s*\\|\\s*null)`,
+        "g",
+      );
+      modifiedContent = modifiedContent.replace(nullablePattern, "$1$2");
+    }
+  }
+
+  return modifiedContent;
+}
+
+/**
  * 테이블 타입 수정
  */
 function fixTableTypes(
   content: string,
   tableName: string,
-  columns: { name: string; type: string; importFrom?: string }[],
+  columns: { name: string; type: string; importFrom?: string }[] = [],
   operations: string[],
 ): string {
   let modifiedContent = content;
@@ -241,7 +310,7 @@ function fixTableTypes(
         );
       }
 
-      // Insert 타입: columnName?: Json | null → columnName?: TypeName | null  
+      // Insert 타입: columnName?: Json | null → columnName?: TypeName | null
       if (operation === "Insert") {
         const insertPattern = new RegExp(
           `(\\s+${column.name}\\?\\s*:\\s*)Json(\\s*\\|?\\s*null)?`,
@@ -324,25 +393,53 @@ function fixDatabaseTypes(): void {
 
   // 3. 각 테이블별로 타입 수정
   for (const tableConfig of CONFIG) {
+    const columnsInfo = tableConfig.columns
+      ? `컬럼=${tableConfig.columns.map((c) => `${c.name}:${c.type}`).join(",")}`
+      : "컬럼=없음";
+    const nullableInfo = tableConfig.nullableToNonNullable
+      ? `nullable제거=${tableConfig.nullableToNonNullable.join(",")}`
+      : "nullable제거=없음";
+
     console.log(
-      `📋 처리 중: 테이블=${tableConfig.tableName}, 컬럼=${tableConfig.columns
-        .map((c) => `${c.name}:${c.type}`)
-        .join(",")}, 작업=${tableConfig.operations.join(",")}`,
+      `📋 처리 중: 테이블=${tableConfig.tableName}, ${columnsInfo}, ${nullableInfo}, 작업=${tableConfig.operations.join(",")}`,
     );
 
-    content = fixTableTypes(
-      content,
-      tableConfig.tableName,
-      tableConfig.columns,
-      tableConfig.operations,
-    );
-
-    // 수정 결과 로그
-    tableConfig.columns.forEach((column) => {
-      console.log(
-        `  - ${tableConfig.tableName}.${column.name}: Json → ${column.type}`,
+    // JSONB 타입 수정
+    if (tableConfig.columns && tableConfig.columns.length > 0) {
+      content = fixTableTypes(
+        content,
+        tableConfig.tableName,
+        tableConfig.columns,
+        tableConfig.operations,
       );
-    });
+
+      // 수정 결과 로그
+      tableConfig.columns.forEach((column) => {
+        console.log(
+          `  - ${tableConfig.tableName}.${column.name}: Json → ${column.type}`,
+        );
+      });
+    }
+
+    // Nullable → Non-nullable 수정
+    if (
+      tableConfig.nullableToNonNullable &&
+      tableConfig.nullableToNonNullable.length > 0
+    ) {
+      content = fixNullableToNonNullable(
+        content,
+        tableConfig.tableName,
+        tableConfig.nullableToNonNullable,
+        tableConfig.operations,
+      );
+
+      // 수정 결과 로그
+      tableConfig.nullableToNonNullable.forEach((fieldName) => {
+        console.log(
+          `  - ${tableConfig.tableName}.${fieldName}: Type | null → Type`,
+        );
+      });
+    }
   }
 
   // 4. 파일 저장
