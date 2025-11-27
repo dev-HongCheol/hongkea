@@ -172,13 +172,16 @@ export const ADMIN_ROUTES = {
     label: "Category",
     url: "/admin/category",
     description: "카테고리 관리",
-   
   },
   BRAND: {
     label: "Brand",
     url: "/admin/brand",
     description: "브랜드 관리",
-   
+  },
+  PRODUCTS: {
+    label: "Products",
+    url: "/admin/products",
+    description: "제품 관리",
   },
 } as const;
 
