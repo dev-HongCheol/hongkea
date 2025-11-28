@@ -3,9 +3,9 @@
  * Provides clean type definitions based on database schema
  */
 
-import { z } from "zod";
 import { Tables } from "@/shared/types/database.types";
-import { EntityView, EntityCreate, EntityUpdate } from "@/shared/types/entity";
+import { EntityCreate, EntityUpdate, EntityView } from "@/shared/types/entity";
+import { z } from "zod";
 
 // Database type aliases (Supabase 자동 생성 타입)
 export type ProductRow = Tables<"hk_products">;
@@ -134,6 +134,11 @@ export const productCreateSchema = z
       Object.values(data.dimensions).some((v) => v !== undefined && v > 0)
         ? data.dimensions
         : null,
+    // null 값 유지 (선택적 필드는 없으면 null)
+    cost_price: data.cost_price || null,
+    sale_price: data.sale_price || null,
+    weight: data.weight || null,
+    warranty_period: data.warranty_period || null,
   }))
   .refine(
     (data) => {
@@ -174,9 +179,24 @@ export type ProductFormData = ProductCreateInput;
 
 // Database type imports (기존 테이블 타입 재사용)
 export type ProductImage = EntityView<Tables<"hk_product_images">>;
+export type ProductImageCreate = EntityCreate<Tables<"hk_product_images">>;
+export type ProductImageUpdate = EntityUpdate<Tables<"hk_product_images">>;
 export type ProductOptionGroup = Tables<"hk_product_option_groups">;
 export type ProductOptionValue = Tables<"hk_product_option_values">;
 export type ProductVariant = EntityView<Tables<"hk_product_variants">>;
+
+// 관리자 제품 등록을 위한 이미지 업로드 타입
+export interface ProductImageUpload {
+  file: File;
+  alt_text?: string;
+  is_primary?: boolean;
+  sort_order?: number;
+}
+
+// 이미지 URL 변환이 포함된 타입 (프론트엔드 사용)
+export type ProductImageWithUrl = Omit<ProductImage, "product_id"> & {
+  public_url: string; // Supabase Storage에서 생성된 공개 URL
+};
 
 // 제품 상세 정보 (관계 데이터 포함)
 export interface ProductDetail extends Product {
@@ -190,7 +210,7 @@ export interface ProductDetail extends Product {
     name: string;
     logo_url: string | null;
   } | null;
-  images: Omit<ProductImage, "product_id">[];
+  images: ProductImageWithUrl[];
   variants: Partial<Omit<ProductVariant, "product_id">>[];
   reviews: {
     count: number;

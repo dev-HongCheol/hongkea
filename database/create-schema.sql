@@ -990,7 +990,10 @@ CREATE POLICY "Only admins can create products" ON hk_products
             SELECT 1 FROM hk_admin_users a 
             WHERE a.user_id = auth.uid() 
             AND a.is_active = TRUE
-            AND (a.permissions->'products' @> '"create"' OR a.role = 'super_admin')
+            AND (
+                a.role = 'super_admin' 
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"create"')
+            )
         )
     );
 
@@ -1000,7 +1003,10 @@ CREATE POLICY "Only admins can update products" ON hk_products
             SELECT 1 FROM hk_admin_users a 
             WHERE a.user_id = auth.uid() 
             AND a.is_active = TRUE
-            AND (a.permissions->'products' @> '"update"' OR a.role = 'super_admin')
+            AND (
+                a.role = 'super_admin' 
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"update"')
+            )
         )
     );
 
@@ -1010,7 +1016,10 @@ CREATE POLICY "Only admins can delete products" ON hk_products
             SELECT 1 FROM hk_admin_users a 
             WHERE a.user_id = auth.uid() 
             AND a.is_active = TRUE
-            AND (a.permissions->'products' @> '"delete"' OR a.role = 'super_admin')
+            AND (
+                a.role = 'super_admin' 
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"delete"')
+            )
         )
     );
 
@@ -1117,11 +1126,82 @@ ORDER BY order_date DESC;
 COMMENT ON VIEW vw_hk_order_statistics IS '일별 주문 통계 뷰';
 
 -- =========================================
+-- 13. 자동 updated_at 트리거 설정
+-- =========================================
+
+-- updated_at 자동 업데이트 트리거 함수 생성
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+COMMENT ON FUNCTION update_updated_at_column() IS 'UPDATE 시 updated_at 컬럼을 현재 시간으로 자동 갱신';
+
+-- 각 테이블에 updated_at 자동 갱신 트리거 적용
+CREATE TRIGGER update_hk_users_updated_at
+    BEFORE UPDATE ON hk_users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_user_addresses_updated_at
+    BEFORE UPDATE ON hk_user_addresses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_categories_updated_at
+    BEFORE UPDATE ON hk_categories
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_brands_updated_at
+    BEFORE UPDATE ON hk_brands
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_products_updated_at
+    BEFORE UPDATE ON hk_products
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_product_variants_updated_at
+    BEFORE UPDATE ON hk_product_variants
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_cart_items_updated_at
+    BEFORE UPDATE ON hk_cart_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_orders_updated_at
+    BEFORE UPDATE ON hk_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_product_reviews_updated_at
+    BEFORE UPDATE ON hk_product_reviews
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_coupons_updated_at
+    BEFORE UPDATE ON hk_coupons
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_system_settings_updated_at
+    BEFORE UPDATE ON hk_system_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =========================================
 -- 스키마 생성 완료
 -- =========================================
 
 -- 스키마 버전 정보
 INSERT INTO hk_system_settings (setting_key, setting_value, setting_type, description) VALUES
-('schema_version', '1.0.0', 'string', '데이터베이스 스키마 버전');
+('schema_version', '1.0.1', 'string', '데이터베이스 스키마 버전 (updated_at 자동 갱신 트리거 추가)');
 
-COMMENT ON SCHEMA public IS '가구 전문 이커머스 데이터베이스 스키마 v1.0.0';
+COMMENT ON SCHEMA public IS '가구 전문 이커머스 데이터베이스 스키마 v1.0.1';

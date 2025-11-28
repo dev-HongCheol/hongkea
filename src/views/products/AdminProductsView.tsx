@@ -14,7 +14,7 @@ export const AdminProductsView: React.FC = () => {
   const router = useRouter();
 
   const handleCreateProduct = () => {
-    router.push("/admin/products/new");
+    router.push("/admin/products/create");
   };
 
   const handleViewProduct = (product: ProductListItem) => {

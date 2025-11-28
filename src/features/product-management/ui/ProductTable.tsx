@@ -8,6 +8,7 @@
 import { ProductListItem } from "@/entities/product/model";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
+import { productImageStorage } from "@/features/product-creation/lib/storage";
 import { Checkbox } from "@/shared/ui/checkbox";
 import {
   ColumnDef,
@@ -92,7 +93,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
           <div className="flex h-12 w-12 items-center justify-center rounded-md bg-gray-100">
             {row.original.primary_image_url ? (
               <img
-                src={row.original.primary_image_url}
+                src={productImageStorage.getPublicUrl(row.original.primary_image_url)}
                 alt={row.original.name}
                 className="h-full w-full rounded-md object-cover"
               />

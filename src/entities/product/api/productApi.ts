@@ -11,8 +11,10 @@ import {
   ProductDetail,
   ProductListItem,
   ProductFilter,
+  ProductImageWithUrl,
 } from "../model";
 import { Tables } from "@/shared/types/database.types";
+import { STORAGE_CONFIG } from "@/shared/config";
 
 export const productApi = {
   /**
@@ -31,6 +33,7 @@ export const productApi = {
         short_description,
         base_price,
         sale_price,
+        sku,
         primary_image_url,
         is_featured,
         is_new,
@@ -39,7 +42,8 @@ export const productApi = {
         brand_name,
         review_count,
         avg_rating,
-        created_at
+        created_at,
+        is_active
       `,
       )
       .eq("is_active", true);
@@ -141,6 +145,7 @@ export const productApi = {
       review_count: item.review_count,
       average_rating: item.avg_rating,
       created_at: item.created_at,
+      is_active: item.is_active,
     }));
   },
 
@@ -199,12 +204,20 @@ export const productApi = {
         0,
       ) || 0;
 
+    const images: ProductImageWithUrl[] = data.images.map((image) => ({
+      ...image,
+      public_url: supabase.storage
+        .from(STORAGE_CONFIG.PRODUCTS)
+        .getPublicUrl(image.image_url).data.publicUrl,
+    }));
+
     return {
       ...data,
       reviews: {
         count: reviewCount,
         average_rating: averageRating,
       },
+      images,
       inventory: {
         total_stock: totalStock,
         available_stock: totalStock,
@@ -381,12 +394,28 @@ export const productApi = {
       .from("hk_products")
       .update({
         is_active: false,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", id);
 
     if (error) {
       throw new Error(`상품 삭제 실패: ${error.message}`);
+    }
+  },
+
+  /**
+   * 여러 상품 일괄 삭제 (소프트 삭제)
+   * @param ids 상품 ID 배열
+   */
+  async deleteMultiple(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from("hk_products")
+      .update({
+        is_active: false,
+      })
+      .in("id", ids);
+
+    if (error) {
+      throw new Error(`상품 일괄 삭제 실패: ${error.message}`);
     }
   },
 
@@ -514,5 +543,88 @@ export const productApi = {
     }
 
     return (data && data.length > 0) || false;
+  },
+
+  /**
+   * 제품 이미지 추가
+   * @param productId 제품 ID
+   * @param imagePath Supabase Storage 파일 경로
+   * @param options 이미지 옵션
+   * @returns 생성된 이미지 정보
+   */
+  async addImage(
+    productId: string,
+    imagePath: string,
+    options: {
+      alt_text?: string;
+      is_primary?: boolean;
+      sort_order?: number;
+    } = {},
+  ): Promise<Tables<"hk_product_images">> {
+    // 기본 이미지로 설정하는 경우, 기존 기본 이미지를 해제
+    if (options.is_primary) {
+      await supabase
+        .from("hk_product_images")
+        .update({ is_primary: false })
+        .eq("product_id", productId);
+    }
+
+    const { data, error } = await supabase
+      .from("hk_product_images")
+      .insert({
+        product_id: productId,
+        image_url: imagePath,
+        alt_text: options.alt_text || null,
+        is_primary: options.is_primary || false,
+        sort_order: options.sort_order || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`이미지 추가 실패: ${error.message}`);
+    }
+
+    return data;
+  },
+
+  /**
+   * 제품 이미지 삭제
+   * @param imageId 이미지 ID
+   */
+  async deleteImage(imageId: string): Promise<void> {
+    const { error } = await supabase
+      .from("hk_product_images")
+      .delete()
+      .eq("id", imageId);
+
+    if (error) {
+      throw new Error(`이미지 삭제 실패: ${error.message}`);
+    }
+  },
+
+  /**
+   * 제품의 모든 이미지 조회 (URL 변환 포함)
+   * @param productId 제품 ID
+   * @returns URL이 포함된 이미지 목록
+   */
+  async getProductImages(productId: string): Promise<ProductImageWithUrl[]> {
+    const { data, error } = await supabase
+      .from("hk_product_images")
+      .select("*")
+      .eq("product_id", productId)
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      throw new Error(`이미지 조회 실패: ${error.message}`);
+    }
+
+    // Storage URL 변환은 별도 유틸리티에서 처리
+    return (data || []).map((image) => ({
+      ...image,
+      public_url: supabase.storage
+        .from(STORAGE_CONFIG.PRODUCTS)
+        .getPublicUrl(image.image_url).data.publicUrl,
+    }));
   },
 };

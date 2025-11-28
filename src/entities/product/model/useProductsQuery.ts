@@ -256,6 +256,33 @@ export const useProductDeleteMutation = () => {
 };
 
 /**
+ * 여러 상품 일괄 삭제 mutation hook
+ * @returns 상품 일괄 삭제 mutation 객체
+ */
+export const useProductDeleteMultipleMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ids: string[]) => productApi.deleteMultiple(ids),
+    onSuccess: () => {
+      // 모든 상품 목록 관련 쿼리들 무효화
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.featured() });
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.new() });
+      queryClient.invalidateQueries({ queryKey: productQueryKeys.bestsellers() });
+      
+      // 카테고리 및 브랜드별 목록들도 무효화 (전체적으로)
+      queryClient.invalidateQueries({
+        queryKey: [...productQueryKeys.all, "category"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...productQueryKeys.all, "brand"],
+      });
+    },
+  });
+};
+
+/**
  * SKU 중복 확인 hook
  * @param sku 확인할 SKU
  * @param excludeId 제외할 상품 ID (수정시 자기 자신 제외용)
