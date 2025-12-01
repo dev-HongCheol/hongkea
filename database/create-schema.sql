@@ -235,11 +235,9 @@ CREATE TABLE hk_products (
 -- RLS 활성화 (상품은 모든 사용자가 조회 가능, 관리자만 CUD 가능)
 ALTER TABLE hk_products ENABLE ROW LEVEL SECURITY;
 
--- RLS 정책: 모든 사용자가 활성 상품 조회 가능
-CREATE POLICY "Anyone can view active products" ON hk_products
-    FOR SELECT USING (is_active = TRUE);
-
--- 관리자 권한 정책은 hk_admin_users 테이블 생성 후에 추가됩니다.
+-- RLS 정책: 일반 사용자는 활성 상품만, 관리자는 모든 상품 조회 가능
+-- 주의: 이 정책은 hk_admin_users 테이블 생성 후에 적용됩니다.
+-- 초기에는 모든 사용자가 활성 상품만 볼 수 있습니다.
 
 COMMENT ON TABLE hk_products IS '상품 기본 정보';
 COMMENT ON COLUMN hk_products.id IS '상품 고유 식별자';
@@ -983,36 +981,137 @@ CREATE INDEX idx_hk_admin_logs_action_created ON hk_admin_activity_logs(action, 
 -- 관리자 권한 기반 RLS 정책 추가 (관리자 테이블 생성 후)
 -- =========================================
 
--- 상품 관리 정책 추가
+-- 상품 SELECT 정책: 일반 사용자는 활성 상품만, 관리자는 모든 상품 조회 가능
+CREATE POLICY "View products based on role" ON hk_products
+    FOR SELECT USING (
+        -- 일반 사용자: 활성 상품만 조회
+        is_active = TRUE
+        OR
+        -- 관리자: 모든 상품 조회 가능 (비활성 제품 포함)
+        EXISTS (
+            SELECT 1 FROM hk_admin_users a
+            WHERE a.user_id = auth.uid()
+            AND a.is_active = TRUE
+        )
+    );
+
+-- 상품 INSERT 정책: 관리자만 생성 가능
 CREATE POLICY "Only admins can create products" ON hk_products
     FOR INSERT WITH CHECK (
         EXISTS (
-            SELECT 1 FROM hk_admin_users a 
-            WHERE a.user_id = auth.uid() 
+            SELECT 1 FROM hk_admin_users a
+            WHERE a.user_id = auth.uid()
             AND a.is_active = TRUE
-            AND (a.permissions->'products' @> '"create"' OR a.role = 'super_admin')
+            AND (
+                a.role = 'super_admin'
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"create"')
+            )
         )
     );
 
+-- 상품 UPDATE 정책: 관리자만 수정 가능
+-- USING: 수정할 행을 선택할 수 있는 권한
+-- WITH CHECK: 수정 후 행이 정책을 만족하는지 검증
 CREATE POLICY "Only admins can update products" ON hk_products
-    FOR UPDATE USING (
+    FOR UPDATE
+    USING (
         EXISTS (
-            SELECT 1 FROM hk_admin_users a 
-            WHERE a.user_id = auth.uid() 
+            SELECT 1 FROM hk_admin_users a
+            WHERE a.user_id = auth.uid()
             AND a.is_active = TRUE
-            AND (a.permissions->'products' @> '"update"' OR a.role = 'super_admin')
+            AND (
+                a.role = 'super_admin'
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"update"')
+            )
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM hk_admin_users a
+            WHERE a.user_id = auth.uid()
+            AND a.is_active = TRUE
+            AND (
+                a.role = 'super_admin'
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"update"')
+            )
         )
     );
 
+-- 상품 DELETE 정책: 관리자만 삭제 가능
 CREATE POLICY "Only admins can delete products" ON hk_products
     FOR DELETE USING (
         EXISTS (
-            SELECT 1 FROM hk_admin_users a 
-            WHERE a.user_id = auth.uid() 
+            SELECT 1 FROM hk_admin_users a
+            WHERE a.user_id = auth.uid()
             AND a.is_active = TRUE
-            AND (a.permissions->'products' @> '"delete"' OR a.role = 'super_admin')
+            AND (
+                a.role = 'super_admin'
+                OR (a.permissions::jsonb ? 'products' AND a.permissions::jsonb->'products' @> '"delete"')
+            )
         )
     );
+
+-- =========================================
+-- Supabase Storage RLS 정책 (제품 이미지)
+-- =========================================
+
+-- Storage INSERT 정책: 관리자만 제품 이미지 업로드 가능
+CREATE POLICY "Admins can upload product images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'hk_products'
+    AND EXISTS (
+        SELECT 1 FROM public.hk_admin_users a
+        WHERE a.user_id = auth.uid()
+        AND a.is_active = TRUE
+    )
+);
+
+-- Storage SELECT 정책: 모든 사용자가 제품 이미지 조회 가능
+CREATE POLICY "Anyone can view product images"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'hk_products');
+
+-- Storage UPDATE 정책: 관리자만 제품 이미지 수정 가능
+CREATE POLICY "Admins can update product images"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+    bucket_id = 'hk_products'
+    AND EXISTS (
+        SELECT 1 FROM public.hk_admin_users a
+        WHERE a.user_id = auth.uid()
+        AND a.is_active = TRUE
+    )
+)
+WITH CHECK (
+    bucket_id = 'hk_products'
+    AND EXISTS (
+        SELECT 1 FROM public.hk_admin_users a
+        WHERE a.user_id = auth.uid()
+        AND a.is_active = TRUE
+    )
+);
+
+-- Storage DELETE 정책: 관리자만 제품 이미지 삭제 가능
+CREATE POLICY "Admins can delete product images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+    bucket_id = 'hk_products'
+    AND EXISTS (
+        SELECT 1 FROM public.hk_admin_users a
+        WHERE a.user_id = auth.uid()
+        AND a.is_active = TRUE
+    )
+);
+
+COMMENT ON POLICY "Admins can upload product images" ON storage.objects IS '관리자만 제품 이미지를 업로드할 수 있음';
+COMMENT ON POLICY "Anyone can view product images" ON storage.objects IS '모든 사용자가 제품 이미지를 조회할 수 있음(공개)';
+COMMENT ON POLICY "Admins can update product images" ON storage.objects IS '관리자만 제품 이미지를 수정할 수 있음';
+COMMENT ON POLICY "Admins can delete product images" ON storage.objects IS '관리자만 제품 이미지를 삭제할 수 있음';
 
 -- 주문 관리 정책 수정 (기존 정책 삭제 후 재생성)
 DROP POLICY IF EXISTS "Users can view their own orders" ON hk_orders;
@@ -1117,11 +1216,82 @@ ORDER BY order_date DESC;
 COMMENT ON VIEW vw_hk_order_statistics IS '일별 주문 통계 뷰';
 
 -- =========================================
+-- 13. 자동 updated_at 트리거 설정
+-- =========================================
+
+-- updated_at 자동 업데이트 트리거 함수 생성
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+COMMENT ON FUNCTION update_updated_at_column() IS 'UPDATE 시 updated_at 컬럼을 현재 시간으로 자동 갱신';
+
+-- 각 테이블에 updated_at 자동 갱신 트리거 적용
+CREATE TRIGGER update_hk_users_updated_at
+    BEFORE UPDATE ON hk_users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_user_addresses_updated_at
+    BEFORE UPDATE ON hk_user_addresses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_categories_updated_at
+    BEFORE UPDATE ON hk_categories
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_brands_updated_at
+    BEFORE UPDATE ON hk_brands
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_products_updated_at
+    BEFORE UPDATE ON hk_products
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_product_variants_updated_at
+    BEFORE UPDATE ON hk_product_variants
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_cart_items_updated_at
+    BEFORE UPDATE ON hk_cart_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_orders_updated_at
+    BEFORE UPDATE ON hk_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_product_reviews_updated_at
+    BEFORE UPDATE ON hk_product_reviews
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_coupons_updated_at
+    BEFORE UPDATE ON hk_coupons
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_hk_system_settings_updated_at
+    BEFORE UPDATE ON hk_system_settings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =========================================
 -- 스키마 생성 완료
 -- =========================================
 
 -- 스키마 버전 정보
 INSERT INTO hk_system_settings (setting_key, setting_value, setting_type, description) VALUES
-('schema_version', '1.0.0', 'string', '데이터베이스 스키마 버전');
+('schema_version', '1.0.2', 'string', '데이터베이스 스키마 버전 (RLS 정책 개선: 관리자 비활성 제품 조회, UPDATE WITH CHECK 추가, Storage 정책 추가)');
 
-COMMENT ON SCHEMA public IS '가구 전문 이커머스 데이터베이스 스키마 v1.0.0';
+COMMENT ON SCHEMA public IS '가구 전문 이커머스 데이터베이스 스키마 v1.0.2';
