@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 
-const page = () => {
+export default function AdminPage() {
   redirect("/admin/category");
-};
-
-export default page;
+}
