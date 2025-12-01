@@ -26,7 +26,7 @@ export const ProductManagementPage: React.FC<ProductManagementPageProps> = ({
   // Product Table State
   const productTableData = useProductTable({
     pageSize: 50,
-    initialFilters: { is_active: undefined }, // 관리자는 모든 상품 볼 수 있음
+    initialFilters: { is_active: true }, // 관리자는 모든 상품 볼 수 있음
     initialSorting: { column: "created_at", direction: "desc" },
   });
 

@@ -205,6 +205,35 @@ export const ProductTableFilters: React.FC<ProductTableFiltersProps> = ({
                   </Button>
                 </div>
 
+                {/* 활성 상태 */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">상태</Label>
+                  <Select
+                    value={
+                      filters.is_active === undefined
+                        ? "all"
+                        : filters.is_active
+                          ? "active"
+                          : "inactive"
+                    }
+                    onValueChange={(value) =>
+                      updateFilters({
+                        is_active:
+                          value === "all" ? undefined : value === "active",
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="active">활성</SelectItem>
+                      <SelectItem value="inactive">비활성</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* 카테고리 필터 */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">카테고리</Label>
@@ -308,35 +337,6 @@ export const ProductTableFilters: React.FC<ProductTableFiltersProps> = ({
                       </Label>
                     </div>
                   </div>
-                </div>
-
-                {/* 활성 상태 */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">상태</Label>
-                  <Select
-                    value={
-                      filters.is_active === undefined
-                        ? "all"
-                        : filters.is_active
-                          ? "active"
-                          : "inactive"
-                    }
-                    onValueChange={(value) =>
-                      updateFilters({
-                        is_active:
-                          value === "all" ? undefined : value === "active",
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">전체</SelectItem>
-                      <SelectItem value="active">활성</SelectItem>
-                      <SelectItem value="inactive">비활성</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 {/* 가격 범위 */}

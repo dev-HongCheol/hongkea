@@ -201,6 +201,7 @@ export const productTableApi = {
         review_count: item.review_count,
         average_rating: item.avg_rating,
         created_at: item.created_at,
+        is_active: item.is_active,
       })),
       nextCursor,
       hasMore,
@@ -208,7 +209,7 @@ export const productTableApi = {
     };
   },
 
-  /**'''qq  q 1A
+  /**
    * 제품 일괄 업데이트
    */
   async bulkUpdateProducts(
@@ -222,10 +223,7 @@ export const productTableApi = {
   ): Promise<void> {
     const { error } = await supabase
       .from("hk_products")
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updates)
       .in("id", productIds);
 
     if (error) {
@@ -241,7 +239,6 @@ export const productTableApi = {
       .from("hk_products")
       .update({
         is_active: false,
-        updated_at: new Date().toISOString(),
       })
       .in("id", productIds);
 
